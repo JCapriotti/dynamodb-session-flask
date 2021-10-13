@@ -1,4 +1,5 @@
 import pytest
+from dynamodb_session_flask import session
 from . import create_test_app
 
 
@@ -11,9 +12,8 @@ def test_header_with_default_settings():
 
     app = create_test_app(config)
     with app.test_client() as tc:
-        expected_header_value = app.session_interface._session.session_id
-
         response = tc.get('/')
+        expected_header_value = session.session_id
 
         assert expected_header_name in response.headers
         assert response.headers[expected_header_name] == expected_header_value
@@ -30,9 +30,8 @@ def test_header_with_configured_settings():
 
     app = create_test_app(config)
     with app.test_client() as tc:
-        expected_header_value = app.session_interface._session.session_id
-
         response = tc.get('/')
+        expected_header_value = session.session_id
 
         assert expected_header_name in response.headers
         assert response.headers[expected_header_name] == expected_header_value

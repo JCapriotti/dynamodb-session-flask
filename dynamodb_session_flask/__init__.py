@@ -1,6 +1,9 @@
-from dynamodb_session_web import SessionCore
+from dynamodb_session_web import SessionCore, SessionDictInstance
 from flask.sessions import SessionInterface, SessionMixin
-from flask import Flask
+from flask import Flask, session as flask_session
+
+# noinspection PyTypeChecker
+session: SessionDictInstance = flask_session
 
 
 class Session(object):
@@ -13,8 +16,6 @@ class Session(object):
             core_kwargs = {
                 'sid_byte_length': conf.get('SESSION_DYNAMODB_SID_BYTE_LENGTH', None),
                 'table_name': conf.get('SESSION_DYNAMODB_TABLE_NAME', None),
-                'idle_timeout': conf.get('SESSION_DYNAMODB_IDLE_TIMEOUT', None),
-                'absolute_timeout': conf.get('SESSION_DYNAMODB_ABSOLUTE_TIMEOUT', None),
                 'endpoint_url': conf.get('SESSION_DYNAMODB_ENDPOINT_URL', None),
             }
             flask_kwargs = {
@@ -36,12 +37,10 @@ class Session(object):
             app.session_interface = DynamoDbSession(**actual_kwargs)
 
 
-class DynamoDbSessionData(dict, SessionMixin):
-    def __init__(self, data, session_id):
-        super().__init__()
-        self.update(data)
+class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.cleared = False
-        self.session_id = session_id
 
     def clear(self):
         super().__init__()
@@ -59,39 +58,38 @@ class DynamoDbSession(SessionInterface):
         self._cookie_path = kw.pop('cookie_path')
         self._use_header = kw.pop('use_header')
         self._header_name = kw.pop('header_name')
-        self._session = SessionCore(**kw)
+        self._core_config = kw
 
     def open_session(self, app, request):
+        session = SessionCore(DynamoDbSessionInstance, **self._core_config)
         if self._use_header:
             sid = request.headers.get(self._header_name)
         else:
             sid = request.cookies.get(self._cookie_name)
 
         if sid is None:
-            data = {}
+            instance = session.create()
         else:
-            data = self._session.load()
+            instance = session.load(sid)
 
-        returned_sid = self._session.session_id if self._expose_actual_sid else self._session.loggable_sid
-        return DynamoDbSessionData(data, returned_sid)
+        return instance
 
-    def save_session(self, app, session: DynamoDbSessionData, response):
-        if session.cleared:
-            self._session.clear()
+    def save_session(self, app, session_instance: DynamoDbSessionInstance, response):
+        session = SessionCore(DynamoDbSessionInstance, **self._core_config)
+        if session_instance.cleared:
+            session.clear(session_instance.session_id)
             response.delete_cookie(self._cookie_name, domain=self._cookie_domain, path=self._cookie_path)
             return
 
-        self._session.save(dict(session))
+        session.save(session_instance)
 
         if self._use_header:
-            response.headers[self._header_name] = self._session.session_id
+            response.headers[self._header_name] = session_instance.session_id
         else:
             response.set_cookie(self._cookie_name,
-                                self._session.session_id,
+                                session_instance.session_id,
                                 secure=self._cookie_secure,
                                 httponly=self._cookie_http_only,
                                 samesite=self._cookie_same_site,
                                 domain=self._cookie_domain,
-                                path=self._cookie_path,
-                                )
-        self._session.save(session)
+                                path=self._cookie_path)

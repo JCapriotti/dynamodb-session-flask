@@ -1,0 +1,11 @@
+flask
+
+pytest
+pytest-cov
+pytest-docker
+pytest-mock
+
+
+--find-links=requirements
+../dynamodb-session-web
+

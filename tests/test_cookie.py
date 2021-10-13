@@ -1,4 +1,5 @@
 import pytest
+from dynamodb_session_flask import session
 from werkzeug.http import parse_cookie
 from . import create_test_app
 
@@ -12,9 +13,8 @@ def test_cookie_is_set_with_defaults():
 
     app = create_test_app()
     with app.test_client() as tc:
-        expected_cookie_value = app.session_interface._session.session_id
-
         response = tc.get('/')
+        expected_cookie_value = session.session_id
 
         cookie = next(
             (cookie for cookie in response.headers.getlist('Set-Cookie') if expected_cookie_name in cookie),
@@ -52,9 +52,8 @@ def test_cookie_is_set_with_configured_settings():
 
     app = create_test_app(config)
     with app.test_client() as tc:
-        expected_cookie_value = app.session_interface._session.session_id
-
         response = tc.get('/')
+        expected_cookie_value = session.session_id
 
         cookie = next(
             (cookie for cookie in response.headers.getlist('Set-Cookie') if expected_cookie_name in cookie),
