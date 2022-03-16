@@ -1,9 +1,6 @@
 from dynamodb_session_web import SessionCore, SessionDictInstance
 from flask.sessions import SessionInterface, SessionMixin
-from flask import Flask, session as flask_session
-
-# noinspection PyTypeChecker
-session: SessionDictInstance = flask_session
+from flask import Flask
 
 
 class Session(object):
