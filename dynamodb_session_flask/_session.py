@@ -1,0 +1,171 @@
+from datetime import datetime, timedelta, timezone
+from typing import Any, Dict, cast
+
+from dynamodb_session_web import SessionManager, SessionDictInstance
+from dynamodb_session_web.exceptions import SessionError
+from flask import Flask
+from flask.sessions import SessionInterface, SessionMixin
+from flask.wrappers import Request, Response
+
+DEFAULT_COOKIE_NAME = 'id'
+DEFAULT_COOKIE_SAMESITE = 'Strict'
+DEFAULT_COOKIE_SECURE = True
+DEFAULT_HEADER_NAME = 'x-id'
+DEFAULT_SID_KEYS = ['ChangeMe']
+
+
+def current_datetime(datetime_value: datetime = None) -> datetime:
+    if datetime_value is None:
+        datetime_value = datetime.now(tz=timezone.utc)
+    return datetime_value
+
+
+def current_timestamp(datetime_value: datetime = None) -> int:
+    return int(current_datetime(datetime_value).timestamp())
+
+
+class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
+    def __init__(self, **kwargs):
+        self.cleared = False
+        self.modified = False
+        super().__init__(**kwargs)
+
+    def clear(self):
+        self.cleared = True
+        super().clear()
+
+    def __setitem__(self, key, value):
+        self.modified = True
+        super().__setitem__(key, value)
+
+
+class FlaskNullSessionInstance(DynamoDbSessionInstance):
+    pass
+
+
+class DynamoDbSession(SessionInterface):
+    def _create_session_manager(self, app: Flask) -> SessionManager:
+        mgr = SessionManager(DynamoDbSessionInstance, **self._session_manager_configuration(app))
+        mgr.null_session_class = FlaskNullSessionInstance
+        return mgr
+
+    def open_session(self, app: Flask, request: Request) -> DynamoDbSessionInstance:
+        session_manager = self._create_session_manager(app)
+        if self._use_header(app):
+            sid = request.headers.get(self._header_name(app))
+        else:
+            sid = request.cookies.get(self._cookie_name(app))
+
+        if sid is not None:
+            try:
+                return session_manager.load(sid)
+            except SessionError as exc:
+                app.logger.info(exc)
+
+        return self.create_session(session_manager)
+
+    @staticmethod
+    def create_session(session_manager: SessionManager) -> DynamoDbSessionInstance:
+        instance = session_manager.create()
+        instance.new = True
+        return instance
+
+    def save_session(self, app: Flask, session: SessionMixin, response: Response):
+        """ Saves a session, depending on if it was used now or in the past.
+
+        A session is `new` if a record was not found during `open_session`. We only save if it was also modified.
+
+        Sessions that are not new are always saved, in order to update expiration. Accessing a session always updates
+        expiration, regardless of whether or not it was saved.
+
+        new    | modified | Saved?
+        -------|----------|--------
+        False  | False    | True
+        False  | True     | True
+        True   | False    | False
+        True   | True     | True
+        """
+        # The actual type we need is DynamoDbSessionInstance
+        session_instance = cast(DynamoDbSessionInstance, session)
+        session_manager = self._create_session_manager(app)
+
+        if session_instance.cleared:
+            session_manager.clear(session_instance.session_id)
+            if not self._use_header(app):
+                name = self._cookie_name(app)
+                domain = self.get_cookie_domain(app)
+                path = self.get_cookie_path(app)
+                response.delete_cookie(name, domain=domain, path=path)
+            return
+
+        if session_instance.modified or not session_instance.new:
+            session_manager.save(session_instance)
+
+        if self._use_header(app):
+            response.headers[self._header_name(app)] = session_instance.session_id
+        else:
+            self._save_cookie(session_instance, app, response)
+
+    def _save_cookie(self, session_instance: DynamoDbSessionInstance, app: Flask, response: Response):
+        name = self._cookie_name(app)
+        domain = self.get_cookie_domain(app)
+        path = self.get_cookie_path(app)
+        http_only = self.get_cookie_httponly(app)
+        secure = self._cookie_secure(app)
+        same_site = self._cookie_samesite(app)
+
+        idle_expiration = session_instance.idle_timeout_seconds + current_timestamp()
+        absolute_expiration = session_instance.absolute_timeout_seconds + int(session_instance.created.timestamp())
+        expires = min(idle_expiration, absolute_expiration)
+
+        response.set_cookie(name,
+                            session_instance.session_id,
+                            expires=expires,
+                            secure=secure,
+                            httponly=http_only,
+                            samesite=same_site,
+                            domain=domain,
+                            path=path)
+
+    @staticmethod
+    def _use_header(app: Flask) -> bool:
+        return app.config.get('SESSION_DYNAMODB_USE_HEADER', False)
+
+    @staticmethod
+    def _header_name(app: Flask) -> str:
+        return app.config.get('SESSION_DYNAMODB_HEADER_NAME', 'x-id')
+
+    def _cookie_name(self, app: Flask) -> str:
+        if app.config.get('SESSION_DYNAMODB_USE_FLASK_COOKIE_NAME', False):
+            return self.get_cookie_name(app)
+        return DEFAULT_COOKIE_NAME
+
+    def _cookie_secure(self, app: Flask) -> bool:
+        if app.config.get('SESSION_DYNAMODB_USE_FLASK_COOKIE_SECURE', False):
+            return self.get_cookie_secure(app)
+        return DEFAULT_COOKIE_SECURE
+
+    def _cookie_samesite(self, app: Flask) -> str:
+        return DEFAULT_COOKIE_SAMESITE if self.get_cookie_samesite(app) is None else self.get_cookie_samesite(app)
+
+    @staticmethod
+    def _session_manager_configuration(app: Flask) -> Dict[str, Any]:
+        absolute_cfg = app.config.get('SESSION_DYNAMODB_ABSOLUTE_TIMEOUT', None)
+        permanent_lifetime_cfg = int(cast(timedelta, app.permanent_session_lifetime).total_seconds())
+
+        if absolute_cfg:
+            absolute_timeout = min(absolute_cfg, permanent_lifetime_cfg)
+        else:
+            absolute_timeout = permanent_lifetime_cfg
+
+        core_kwargs = {
+            'sid_byte_length': app.config.get('SESSION_DYNAMODB_SID_BYTE_LENGTH', None),
+            'table_name': app.config.get('SESSION_DYNAMODB_TABLE_NAME', None),
+            'endpoint_url': app.config.get('SESSION_DYNAMODB_ENDPOINT_URL', None),
+            'idle_timeout_seconds': app.config.get('SESSION_DYNAMODB_IDLE_TIMEOUT', None),
+            'absolute_timeout_seconds': absolute_timeout,
+            'sid_keys': app.config.get('SESSION_DYNAMODB_SID_KEYS', DEFAULT_SID_KEYS),
+            'bad_session_id_raises': True,
+        }
+
+        return {k: v for k, v in core_kwargs.items() if v is not None}
