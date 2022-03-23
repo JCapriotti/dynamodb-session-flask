@@ -59,8 +59,8 @@ def test_cookie_is_set_with_flask_configured_settings(client):
     expected_path = '/auth'
 
     config = cookie_config() | {
-        'SESSION_DYNAMODB_USE_FLASK_COOKIE_NAME': True,
-        'SESSION_DYNAMODB_USE_FLASK_COOKIE_SECURE': True,
+        'SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME': False,
+        'SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE': False,
         'SESSION_COOKIE_NAME': expected_cookie_name,
         'SESSION_COOKIE_SECURE': expected_secure,
         'SESSION_COOKIE_HTTPONLY': expected_http_only,

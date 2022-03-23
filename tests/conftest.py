@@ -1,10 +1,11 @@
+import logging
+
 import boto3
 import botocore
 import pytest
 from flask import Flask, session
 
-from dynamodb_session_flask import DynamoDbSession, FlaskNullSessionInstance
-from dynamodb_session_web.exceptions import SessionError
+from dynamodb_session_flask import DynamoDbSession
 
 from .utility import LOCAL_ENDPOINT, TABLE_NAME
 
@@ -90,3 +91,9 @@ def dynamodb_table(docker_services):  # pylint: disable=unused-argument
     table.meta.client.get_waiter('table_exists').wait(TableName=TABLE_NAME)
     yield
     table.delete()
+
+
+@pytest.fixture
+def flask_logs(caplog):
+    caplog.set_level(level=logging.INFO, logger='tests.conftest')
+    yield caplog

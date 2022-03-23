@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, cast
+from typing import Any, Dict, cast, List
 
 from dynamodb_session_web import SessionManager, SessionDictInstance
 from dynamodb_session_web.exceptions import SessionError
@@ -11,7 +11,7 @@ DEFAULT_COOKIE_NAME = 'id'
 DEFAULT_COOKIE_SAMESITE = 'Strict'
 DEFAULT_COOKIE_SECURE = True
 DEFAULT_HEADER_NAME = 'x-id'
-DEFAULT_SID_KEYS = ['ChangeMe']
+DEFAULT_SID_KEYS: List[str] = []
 
 
 def current_datetime(datetime_value: datetime = None) -> datetime:
@@ -60,7 +60,7 @@ class DynamoDbSession(SessionInterface):
             try:
                 return session_manager.load(sid)
             except SessionError as exc:
-                app.logger.info(exc)
+                app.logger.warning(exc)
 
         return self.create_session(session_manager)
 
@@ -100,11 +100,10 @@ class DynamoDbSession(SessionInterface):
 
         if session_instance.modified or not session_instance.new:
             session_manager.save(session_instance)
-
-        if self._use_header(app):
-            response.headers[self._header_name(app)] = session_instance.session_id
-        else:
-            self._save_cookie(session_instance, app, response)
+            if self._use_header(app):
+                response.headers[self._header_name(app)] = session_instance.session_id
+            else:
+                self._save_cookie(session_instance, app, response)
 
     def _save_cookie(self, session_instance: DynamoDbSessionInstance, app: Flask, response: Response):
         name = self._cookie_name(app)
@@ -136,12 +135,12 @@ class DynamoDbSession(SessionInterface):
         return app.config.get('SESSION_DYNAMODB_HEADER_NAME', 'x-id')
 
     def _cookie_name(self, app: Flask) -> str:
-        if app.config.get('SESSION_DYNAMODB_USE_FLASK_COOKIE_NAME', False):
+        if not app.config.get('SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME', True):
             return self.get_cookie_name(app)
         return DEFAULT_COOKIE_NAME
 
     def _cookie_secure(self, app: Flask) -> bool:
-        if app.config.get('SESSION_DYNAMODB_USE_FLASK_COOKIE_SECURE', False):
+        if not app.config.get('SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE', True):
             return self.get_cookie_secure(app)
         return DEFAULT_COOKIE_SECURE
 

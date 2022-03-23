@@ -7,7 +7,7 @@ In addition to the [OWASP Session Management](https://cheatsheetseries.owasp.org
 best practices implemented in `dynamodb-session-web`, this project has additional support for these best practices:
 
 * Non-descript session ID name - Defaults to `id` for cookies, and `x-id` for headers. 
-  * Opinion - isn't a non-descript suggestion for a name actually descriptive?
+  * Side-Comment - isn't a non-descript suggestion for a name actually descriptive?
 * Cookie setting defaults:
   - [X] Secure = True
   - [X] HttpOnly = True
@@ -19,9 +19,9 @@ best practices implemented in `dynamodb-session-web`, this project has additiona
 
 ## Usage
 
-Requires a DynamoDB table named `app_session` (can be changed in settings)
+Requires a DynamoDB table named `app_session` (can be changed in settings). 
 
-### Create session table
+Here's an example table creation statement:
 
 ```shell
 aws dynamodb create-table \
@@ -32,167 +32,145 @@ aws dynamodb create-table \
     --table-name app_session 
 ```
 
-### Default Example
+Sessions are intended to operate just like the default Flask session implementation:
+
 ```python
-from dynamodb_session_web import SessionManager
+from flask import Flask, session
+from dynamodb_session_flask import DynamoDbSession
 
-session = SessionManager()
+flask_app = Flask(__name__)
+flask_app.session_interface = DynamoDbSession()
 
-# Create a new session object, get the ID for later use
-initial_data = session.create()
-session_id = initial_data.session_id
+@flask_app.route('/save')
+def save():
+    session['val'] = 'My Value'
+    return 'Success', 200
 
-initial_data['foo'] = 'bar'
-initial_data['one'] = 1
-session.save(initial_data)
+@flask_app.route('/load')
+def load():
+    saved_val = session['val']
+    return saved_val, 200
 
-print(session_id)
-#> 'WaHnSSou4d5Rq0k11vFGafe4sjMrkwiVhNziIWLLwMc'
-print(initial_data.loggable_session_id)
-#> '517286da2682be08dc9975612dc86d65487f0990906656f631d419e64dcda6f41f5e0529c290663be315524a0b35777645e0e827d2e982a048b5e2b4bba4e02b'
-
-loaded_data = session.load(session_id)
-print(loaded_data['foo'])
-#> 'bar'
-print(loaded_data['one'])
-#> 1
-
-session.clear(session_id)
-```
-
-### Configurable Timeout and NullSession Response
-```python
-from time import sleep
-from dynamodb_session_web import SessionManager
-
-session = SessionManager()
-
-# Create a new session object, get the ID for later use
-initial_data = session.create()
-initial_data.idle_timeout_seconds = 30
-initial_data.absolute_timeout_seconds = 30
-session_id = initial_data.session_id
-
-initial_data['foo'] = 'bar'
-session.save(initial_data)
-
-sleep(35)
-
-loaded_data = session.load(session_id)
-print(loaded_data)
-#> <dynamodb_session_web.NullSessionInstance object at 0x109a7da30>
-```
-
-
-### Custom Data Class Example
-```python
-import json
-from dataclasses import asdict, dataclass
-
-from dynamodb_session_web import SessionInstanceBase, SessionManager
-
-@dataclass
-class MySession(SessionInstanceBase):
-    fruit: str = ''
-    color: str = ''
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def deserialize(self, data):
-        data_dict = json.loads(data)
-        self.fruit = data_dict['fruit']
-        self.color = data_dict['color']
-
-    def serialize(self):
-        return json.dumps(asdict(self))
-
-session = SessionManager(MySession)
-
-# Create a new session object, get the ID for later use
-initial_data = session.create()
-session_id = initial_data.session_id
-
-initial_data.fruit = 'apple'
-initial_data.color = 'red'
-session.save(initial_data)
-
-loaded_data = session.load(session_id)
-print(loaded_data.fruit)
-#> 'apple'
-print(loaded_data.color)
-#> 'red'
-
-session.clear(session_id)
+@flask_app.route('/end')
+def end_session():
+    # This will remove the session from the database and remove the session ID from cookies/headers
+    session.clear()
+    return 'Success', 200
 ```
 
 ## Configuration
 
-Configuration is done via 
-The following
-SESSION_DYNAMODB_USE_HEADER
-SESSION_DYNAMODB_HEADER_NAME
-SESSION_DYNAMODB_USE_FLASK_COOKIE_NAME
-SESSION_DYNAMODB_USE_FLASK_COOKIE_SECURE
-
-Flask config used:
-SESSION_COOKIE_DOMAIN
-SESSION_COOKIE_SECURE
-PERMANENT_SESSION_LIFETIME
-
-Several behaviors can be configured at the Session Manager level:
-* Custom data class; must provide serialization and deserialization methods (see examples)
-* Session ID length
-* Table name
-* DynamoDB URL
+There are additional configuration options, and are set like normal Flask configuration:
 
 ```python
-from dynamodb_session_web import SessionInstanceBase, SessionManager
-
-class MyCustomDataClass(SessionInstanceBase):
-    def deserialize(self, data: str):
-        pass
-
-    def serialize(self) -> str:
-        pass
-
-SessionManager(
-    MyCustomDataClass,
-    sid_byte_length=128,
-    table_name='my-dynamodb-table',
-    endpoint_url='http://localhost:8000',
+flask_app = Flask(__name__)
+flask_app.config.update(
+    SESSION_DYNAMODB_IDLE_TIMEOUT=600
 )
 ```
 
-Additionally, session instances can have their own idle and absolute timeouts, specified in seconds:
+All configuration is optional, assuming the defaults are okay.
 
-```python
-from dynamodb_session_web import SessionManager
+<dl>
 
-session = SessionManager()
+<dt><code>SESSION_DYNAMODB_ABSOLUTE_TIMEOUT</code></dt>
+<dd>
+Absolute session timeout (in seconds).
 
-instance = session.create()
-instance.idle_timeout_seconds = 30
-instance.absolute_timeout_seconds = 30
-```
+Note: This setting works in conjunction with Flask's [`PERMANENT_SESSION_LIFETIME`](https://flask.palletsprojects.com/en/2.0.x/config/#PERMANENT_SESSION_LIFETIME) setting.  The absolute timeout chosen will be whichever is less.
 
-## Development
+Default: `43200` (12 hours)
+</dd>
 
-### Prerequisites:
+<dt><code>SESSION_DYNAMODB_ENDPOINT_URL</code></dt>
+<dd>
+The DynamoDB URL.
 
-* Docker
+Default: `None` (i.e. Boto3 logic)
+</dd>
 
-### Tests
+<dt><code>SESSION_DYNAMODB_HEADER_NAME</code></dt>
+<dd>
+The name of the header to use for the session ID.
 
-The integration tests will use the `docker-compose.yml` file to create a local DynamoDB instance.
+Default: `x-id`
+</dd>
 
-## Useful Things
+<dt><code>SESSION_DYNAMODB_IDLE_TIMEOUT</code></dt>
+<dd>
+Idle session timeout (in seconds).
 
-### Get a record from local DynamoDB instance
+Default: `7200` (2 hours)
+</dd>
 
-```shell
-export sid=Jh4f1zvVp9n-YaDbkpZ0Vtru6iCXnERZv40q_ocZ7BA
-aws dynamodb query --table-name app_session --endpoint-url http://localhost:8000 \
-  --key-condition-expression 'id = :id' \
-  --expression-attribute-values '{ ":id": {"S": "'$sid'" }}'
-```
+<dt><code>SESSION_DYNAMODB_SID_BYTE_LENGTH</code></dt>
+<dd>
+Session ID length in bytes. 
+
+This does not correlate to the character length of the ID, which will be either:
+
+* 43 - How many characters a 32-byte value uses when Base64 encoded. 
+* 71 - The 43 characters from the previous bullet, plus a dot and finally a 27-character HMAC signature. 
+
+Default: `32`
+</dd>
+
+<dt><code>SESSION_DYNAMODB_SID_KEYS</code></dt>
+<dd>
+For a slightly more secure session ID, the key can be signed using a configurable and rotatable key. 
+
+The signature is generated using [`itsdangerous`](https://itsdangerous.palletsprojects.com/en/2.1.x/) and includes key rotation. If/When rotation is desired, the array is used in order from oldest to newest. Otherwise, one key is all that is needed.
+
+An empty array means no signature is generated.
+
+Default: `[]` (no signature)
+</dd>
+
+<dt><code>SESSION_DYNAMODB_TABLE_NAME</code></dt>
+<dd>
+The name of the DynamoDB table.
+
+Default: `app_session`
+</dd>
+
+<dt><code>SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME</code></dt>
+<dd>
+Whether or not to override Flask's [SESSION_COOKIE_NAME](https://flask.palletsprojects.com/en/2.0.x/config/#SESSION_COOKIE_NAME)
+configuration for the session ID. While somewhat trivial, OWASP's recommended value is 
+`id` and Flask's default is `session`. So to avoid using Flask's default or modifying it behind the scenes, this setting
+helps separate this library's preferred default from Flask's.
+
+Setting this to `True` will set the cookie name to `id`. Otherwise, Flask's configuration will be used.
+
+Default: `True`
+</dd>
+
+<dt><code>SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE</code></dt>
+<dd>
+Whether or not to override Flask's [`SESSION_COOKIE_SECURE`](https://flask.palletsprojects.com/en/2.0.x/config/#SESSION_COOKIE_SECURE)
+for the cookie's Secure attribute. Flask defaults that attribute to `False`, whereas this should ideally be `True` to prevent 
+Man-in-the-Middle attacks. 
+
+Setting this to `True` will force the Secure attribute to also be `True`. Otherwise, Flask's configuration will be used.
+
+Note: You'll want to set this to `False` in any environment where TLS is not used (e.g. local development).
+
+Default: `True`
+</dd>
+
+<dt><code>SESSION_DYNAMODB_USE_HEADER</code></dt>
+<dd>
+Whether or not to communicate/expect the session ID via headers.
+
+Default: `False`
+</dd>
+
+<dt><code>SESSION_COOKIE_SAMESITE</code></dt>
+<dd>
+This is actually a Flask configuration, which defaults to `None`. However, if the value is `None`, then we set it to 
+`Strict` by default.
+
+Default: `Strict` (indirectly changed)
+</dd>
+
+</dl>

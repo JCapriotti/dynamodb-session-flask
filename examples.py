@@ -1,5 +1,4 @@
 import json
-from time import sleep
 
 from flask import Flask, session
 from dynamodb_session_flask import DynamoDbSession
@@ -13,29 +12,25 @@ def recreate_database():
     import botocore
     dynamodb = boto3.resource('dynamodb', endpoint_url=LOCAL_ENDPOINT)
 
-    # Remove table (if it exists)
     try:
-        table = dynamodb.Table(TABLE_NAME)
-        table.delete()
+        # Create the DynamoDB table.
+        return dynamodb.create_table(
+            TableName=TABLE_NAME,
+            KeySchema=[{
+                'AttributeName': 'id',
+                'KeyType': 'HASH'
+            }],
+            AttributeDefinitions=[{
+                'AttributeName': 'id',
+                'AttributeType': 'S'
+            }],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        )
     except botocore.exceptions.ClientError:
         pass
-
-    # Create the DynamoDB table.
-    return dynamodb.create_table(
-        TableName=TABLE_NAME,
-        KeySchema=[{
-            'AttributeName': 'id',
-            'KeyType': 'HASH'
-        }],
-        AttributeDefinitions=[{
-            'AttributeName': 'id',
-            'AttributeType': 'S'
-        }],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
-    )
 
 
 def print_table_data(table):
