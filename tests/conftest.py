@@ -6,6 +6,7 @@ import pytest
 from flask import Flask, session
 
 from dynamodb_session_flask import DynamoDbSession
+from dynamodb_session_flask.testing import TestSession
 
 from .utility import LOCAL_ENDPOINT, TABLE_NAME
 
@@ -13,9 +14,6 @@ from .utility import LOCAL_ENDPOINT, TABLE_NAME
 @pytest.fixture
 def app():
     flask_app = Flask(__name__)
-    flask_app.config.update({
-        'TESTING': True,
-    })
 
     @flask_app.route('/')
     def test():
@@ -47,12 +45,16 @@ def app():
 
 @pytest.fixture
 def client(app):  # pylint: disable=redefined-outer-name
+    """ This is a custom test client fixture to allow setting app configuration, prior to client creation """
     def create_initialized_client(config):
         """
         Allows the Flask test client to be initialized with test-case specific configuration before being returned.
         """
         app.config.update(config)
-        app.session_interface = DynamoDbSession()
+        if app.testing:
+            app.session_interface = TestSession()
+        else:
+            app.session_interface = DynamoDbSession()
         return app.test_client()
     return create_initialized_client
 

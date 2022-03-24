@@ -71,40 +71,38 @@ flask_app.config.update(
 
 All configuration is optional, assuming the defaults are okay.
 
-<dl>
-
-<dt><code>SESSION_DYNAMODB_ABSOLUTE_TIMEOUT</code></dt>
-<dd>
+### `SESSION_DYNAMODB_ABSOLUTE_TIMEOUT`
+<div style="margin-left: 30px;">
 Absolute session timeout (in seconds).
 
 Note: This setting works in conjunction with Flask's [`PERMANENT_SESSION_LIFETIME`](https://flask.palletsprojects.com/en/2.0.x/config/#PERMANENT_SESSION_LIFETIME) setting.  The absolute timeout chosen will be whichever is less.
 
 Default: `43200` (12 hours)
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_ENDPOINT_URL</code></dt>
-<dd>
+### `SESSION_DYNAMODB_ENDPOINT_URL`
+<div style="margin-left: 30px;">
 The DynamoDB URL.
 
 Default: `None` (i.e. Boto3 logic)
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_HEADER_NAME</code></dt>
-<dd>
+### `SESSION_DYNAMODB_HEADER_NAME`
+<div style="margin-left: 30px;">
 The name of the header to use for the session ID.
 
 Default: `x-id`
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_IDLE_TIMEOUT</code></dt>
-<dd>
+### `SESSION_DYNAMODB_IDLE_TIMEOUT`
+<div style="margin-left: 30px;">
 Idle session timeout (in seconds).
 
 Default: `7200` (2 hours)
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_SID_BYTE_LENGTH</code></dt>
-<dd>
+### `SESSION_DYNAMODB_SID_BYTE_LENGTH`
+<div style="margin-left: 30px;">
 Session ID length in bytes. 
 
 This does not correlate to the character length of the ID, which will be either:
@@ -113,10 +111,10 @@ This does not correlate to the character length of the ID, which will be either:
 * 71 - The 43 characters from the previous bullet, plus a dot and finally a 27-character HMAC signature. 
 
 Default: `32`
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_SID_KEYS</code></dt>
-<dd>
+### `SESSION_DYNAMODB_SID_KEYS`
+<div style="margin-left: 30px;">
 For a slightly more secure session ID, the key can be signed using a configurable and rotatable key. 
 
 The signature is generated using [`itsdangerous`](https://itsdangerous.palletsprojects.com/en/2.1.x/) and includes key rotation. If/When rotation is desired, the array is used in order from oldest to newest. Otherwise, one key is all that is needed.
@@ -124,17 +122,17 @@ The signature is generated using [`itsdangerous`](https://itsdangerous.palletspr
 An empty array means no signature is generated.
 
 Default: `[]` (no signature)
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_TABLE_NAME</code></dt>
-<dd>
+### `SESSION_DYNAMODB_TABLE_NAME`
+<div style="margin-left: 30px;">
 The name of the DynamoDB table.
 
 Default: `app_session`
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME</code></dt>
-<dd>
+### `SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME`
+<div style="margin-left: 30px;">
 Whether or not to override Flask's [SESSION_COOKIE_NAME](https://flask.palletsprojects.com/en/2.0.x/config/#SESSION_COOKIE_NAME)
 configuration for the session ID. While somewhat trivial, OWASP's recommended value is 
 `id` and Flask's default is `session`. So to avoid using Flask's default or modifying it behind the scenes, this setting
@@ -143,10 +141,10 @@ helps separate this library's preferred default from Flask's.
 Setting this to `True` will set the cookie name to `id`. Otherwise, Flask's configuration will be used.
 
 Default: `True`
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE</code></dt>
-<dd>
+### `SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE`
+<div style="margin-left: 30px;">
 Whether or not to override Flask's [`SESSION_COOKIE_SECURE`](https://flask.palletsprojects.com/en/2.0.x/config/#SESSION_COOKIE_SECURE)
 for the cookie's Secure attribute. Flask defaults that attribute to `False`, whereas this should ideally be `True` to prevent 
 Man-in-the-Middle attacks. 
@@ -156,21 +154,67 @@ Setting this to `True` will force the Secure attribute to also be `True`. Otherw
 Note: You'll want to set this to `False` in any environment where TLS is not used (e.g. local development).
 
 Default: `True`
-</dd>
+</div>
 
-<dt><code>SESSION_DYNAMODB_USE_HEADER</code></dt>
-<dd>
+### `SESSION_DYNAMODB_USE_HEADER`
+<div style="margin-left: 30px;">
 Whether or not to communicate/expect the session ID via headers.
 
 Default: `False`
-</dd>
+</div>
 
-<dt><code>SESSION_COOKIE_SAMESITE</code></dt>
-<dd>
+### `SESSION_COOKIE_SAMESITE`
+<div style="margin-left: 30px;">
 This is actually a Flask configuration, which defaults to `None`. However, if the value is `None`, then we set it to 
 `Strict` by default.
 
 Default: `Strict` (indirectly changed)
-</dd>
+</div>
 
-</dl>
+
+## Testing
+
+Flask has a [pattern for accessing the session](https://flask.palletsprojects.com/en/2.0.x/testing/#accessing-and-modifying-the-session) when running tests.
+This mechanism still uses the backend `session_interface` set for the app (i.e. it will still use DynamoDB). 
+
+To help reduce dependencies when simply trying to run unit tests that need a value set in the session, there's a 
+separate `session_interface` that can be used.
+
+Below is a working example, copied from [this project's tests](tests/test_testing.py). Improvements could be made depending on test expectations.
+
+```python
+import pytest
+from dynamodb_session_flask.testing import TestSession
+from flask import Flask, session
+
+
+@pytest.fixture
+def app():
+    flask_app = Flask(__name__)
+
+    @flask_app.route('/load')
+    def load():
+        return {
+            'actual_value': session.get('val', None),
+        }
+
+    yield flask_app
+
+
+@pytest.fixture()
+def test_client(app):
+    app.session_interface = TestSession()
+    return app.test_client()
+
+
+def test_able_to_use_test_session_transaction(test_client):
+    expected_value = 'fake_value'
+
+    with test_client:
+        with test_client.session_transaction() as test_session:
+            test_session['val'] = expected_value
+
+        response = test_client.get('/load')
+
+        assert response.json['actual_value'] == expected_value
+```
