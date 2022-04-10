@@ -1,3 +1,4 @@
+import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, cast, List
 
@@ -25,6 +26,12 @@ def current_timestamp(datetime_value: datetime = None) -> int:
 
 
 class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
+    """
+    Allows tracking of an SID that was invalid.
+    Returned value is actually the hex digest of the SHA-512 hash of the SID.
+    """
+    failed_sid: str = ''
+
     def __init__(self, **kwargs):
         self.cleared = False
         self.modified = False
@@ -51,6 +58,7 @@ class DynamoDbSession(SessionInterface):
 
     def open_session(self, app: Flask, request: Request) -> DynamoDbSessionInstance:
         session_manager = self._create_session_manager(app)
+        failed = False
         if self._use_header(app):
             sid = request.headers.get(self._header_name(app))
         else:
@@ -61,8 +69,13 @@ class DynamoDbSession(SessionInterface):
                 return session_manager.load(sid)
             except SessionError as exc:
                 app.logger.warning(exc)
+                failed = True
 
-        return self.create_session(session_manager)
+        instance = self.create_session(session_manager)
+        if failed:
+            instance.failed_sid = hashlib.sha512(sid.encode()).hexdigest()
+
+        return instance
 
     @staticmethod
     def create_session(session_manager: SessionManager) -> DynamoDbSessionInstance:

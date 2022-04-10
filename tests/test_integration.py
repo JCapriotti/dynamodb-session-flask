@@ -1,3 +1,4 @@
+import hashlib
 from time import sleep
 
 import pytest
@@ -63,7 +64,11 @@ class TestWorkflows:
             actual = get_dynamo_record(sid)
             assert actual['expires'] > initial_expiration
 
-    def test_removed_sid_cant_be_reused_and_new_sid_created(self, client, helper: SidHelper, flask_logs):
+    def test_removed_sid_cant_be_reused(self, client, helper: SidHelper, flask_logs):
+        """
+        If a previously used session ID is no longer valid for a subsequent request, it isn't used. No session ID is
+        returned if no data was saved.
+        """
         with client(helper.configuration()) as test_client:
             original_response = test_client.get('/save/foo')
             original_sid = helper.sid(original_response)
@@ -95,3 +100,16 @@ class TestWorkflows:
             assert bad_sid_record is None
             assert good_record is not None
             assert sid != bad_sid
+
+    def test_failed_sid_is_available_as_member(self, client, helper: SidHelper, flask_logs):
+        with client(helper.configuration()) as test_client:
+            original_response = test_client.get('/save/foo')
+            original_sid = helper.sid(original_response)
+            expected_bad_sid_hash = hashlib.sha512(original_sid.encode()).hexdigest()
+            remove_dynamo_record(original_sid)
+
+            new_response = test_client.get('/check-bad-sid', headers=helper.request_headers(original_response))
+
+            assert expected_bad_sid_hash in flask_logs.text
+            assert new_response.json['failed_sid'] == expected_bad_sid_hash
+            assert new_response.json['new']

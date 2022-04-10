@@ -1,11 +1,12 @@
 import logging
+from typing import cast
 
 import boto3
 import botocore
 import pytest
 from flask import Flask, session
 
-from dynamodb_session_flask import DynamoDbSession
+from dynamodb_session_flask import DynamoDbSession, DynamoDbSessionInstance
 from dynamodb_session_flask.testing import TestSession
 
 from .utility import LOCAL_ENDPOINT, TABLE_NAME
@@ -29,6 +30,14 @@ def app():
     def load():
         return {
             'actual_value': session.get('val', None),
+        }
+
+    @flask_app.route('/check-bad-sid')
+    def check_bad_sid():
+        dynamo_session = cast(DynamoDbSessionInstance, session)
+        return {
+            'failed_sid': dynamo_session.failed_sid,
+            'new': dynamo_session.new,
         }
 
     @flask_app.route('/no-session-use')
