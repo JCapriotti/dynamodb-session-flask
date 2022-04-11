@@ -72,7 +72,7 @@ class DynamoDbSession(SessionInterface):
                 failed = True
 
         instance = self.create_session(session_manager)
-        if failed:
+        if failed and sid is not None:
             instance.failed_sid = hashlib.sha512(sid.encode()).hexdigest()
 
         return instance
