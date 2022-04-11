@@ -3,8 +3,16 @@
 An implementation of a Flask session using DynamoDB as backend storage. This project was built on 
 [dynamodb-session-web](https://github.com/JCapriotti/dynamodb-session-web), but with support for the Flask framework.
 
+## Why This Library?
+
+I tried and acquired an appreciation for some other DynamoDB backend implementations for Flask sessions. 
+However, I needed a few extra things:
+* Absolute and Idle Timeouts
+* Support for using a header (not a cookie) for session ID
+
 In addition to the [OWASP Session Management](https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html) 
-best practices implemented in `dynamodb-session-web`, this project has additional support for these best practices:
+best practices implemented in `dynamodb-session-web`, 
+this project has additional support for these best practices:
 
 * Non-descript session ID name - Defaults to `id` for cookies, and `x-id` for headers. 
   * Side-Comment - isn't a non-descript suggestion for a name actually descriptive?
