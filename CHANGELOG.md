@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.6.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.6.0) - 2022-04-25
+
+### Changed
+* If `SESSION_DYNAMODB_USE_HEADER` is `True`, also allow the session ID to be sent via cookie.
+
 ## [0.5.3](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.5.3) - 2022-04-11
 
 ### Added

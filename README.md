@@ -166,7 +166,7 @@ Default: `True`
 
 ### `SESSION_DYNAMODB_USE_HEADER`
 <div style="margin-left: 30px;">
-Whether or not to communicate/expect the session ID via headers.
+Whether or not to check for the session ID via headers. The cookie value is still used by default (if found).
 
 Default: `False`
 </div>

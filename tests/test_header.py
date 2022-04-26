@@ -38,3 +38,20 @@ def test_header_with_configured_settings(client):
         assert response.headers[expected_header_name] == expected_sid
         assert actual_record['idle_timeout'] == expected_idle_timeout
         assert actual_record['absolute_timeout'] == expected_absolute_timeout
+
+
+def test_cookie_used_when_available(client):
+    """
+    We can allow a cookie to be used in place of header, when 'use header' setting is enabled
+    """
+    expected_value = str_param()
+
+    with client(header_config()) as test_client:
+        save_response = test_client.get(f'/save/{expected_value}')
+
+        sid = save_response.headers['x-id']
+
+        test_client.set_cookie('', 'id', sid)
+        load_response = test_client.get('/load')
+
+        assert load_response.json['actual_value'] == expected_value

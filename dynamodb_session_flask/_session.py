@@ -60,7 +60,7 @@ class DynamoDbSession(SessionInterface):
         session_manager = self._create_session_manager(app)
         failed = False
         if self._use_header(app):
-            sid = request.headers.get(self._header_name(app))
+            sid = request.cookies.get(self._cookie_name(app)) or request.headers.get(self._header_name(app))
         else:
             sid = request.cookies.get(self._cookie_name(app))
 
