@@ -115,6 +115,7 @@ class DynamoDbSession(SessionInterface):
             session_manager.save(session_instance)
             if self._use_header(app):
                 response.headers[self._header_name(app)] = session_instance.session_id
+                self._save_cookie(session_instance, app, response)
             else:
                 self._save_cookie(session_instance, app, response)
 

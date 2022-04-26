@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.6.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.6.1) - 2022-04-26
+
+### Changed
+* Related to last change, we need to set the session ID in the cookie even if `SESSION_DYNAMODB_USE_HEADER` is `True`.
+
 ## [0.6.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.6.0) - 2022-04-25
 
 ### Changed

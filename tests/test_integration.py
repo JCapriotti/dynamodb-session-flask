@@ -38,6 +38,11 @@ class TestWorkflows:
             assert len(get_all_dynamo_records()) == 0
 
     def test_no_use_followed_by_use_saves_session(self, client, helper: SidHelper):
+        """
+        Make sure that no session use does not save anything or return a SID.
+        Then when the session is used, verify that a SID is returned and session is saved.
+        For header use, it should send back the ID in a dedicated header, and cookie.
+        """
         with client(helper.configuration()) as test_client:
             resp = test_client.get('/no-session-use')
             sid = helper.sid(resp)
@@ -49,6 +54,10 @@ class TestWorkflows:
             sid = helper.sid(resp)
 
             assert get_dynamo_record(sid) is not None
+
+            if isinstance(helper, HeaderSidHelper):
+                cookie_sid = CookieSidHelper().sid(resp)
+                assert cookie_sid == sid
 
     def test_save_load_updates_expiration_after_load(self, client, helper: SidHelper):
         expected_session_value = str_param()

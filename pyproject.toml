@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dynamodb-session-flask"
-version = "0.6.0"
+version = "0.6.1"
 description = "A session implementation for Flask using DynamoDB as a backing store and OWASP best practices for session management."
 keywords = ["flask", "session", "DynamoDB"]
 authors = ["Jason Capriotti <jason.capriotti@gmail.com>"]
@@ -15,7 +15,7 @@ repository = "https://github.com/JCapriotti/dynamodb-session-flask"
 [tool.poetry.dependencies]
 python = "^3.9"
 Flask = "^2.0.0"
-dynamodb-session-web = "^0.2.4"
+dynamodb-session-web = "^0.2.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.0.0"
