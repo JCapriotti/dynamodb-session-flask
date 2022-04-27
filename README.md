@@ -66,6 +66,46 @@ def end_session():
     return 'Success', 200
 ```
 
+If using the extra methods that are provided ([see below](#Session Instance Methods)), 
+you may find it useful to have an extra module-level variable. It helps with IDE code completion.
+
+```python
+from typing import cast
+
+from flask import Flask, session as flask_session
+from dynamodb_session_flask import DynamoDbSessionInstance
+
+dynamodb_session = cast(DynamoDbSessionInstance, flask_session)
+
+
+def abandon_session():
+    dynamodb_session.abandon()
+```
+
+### Behavior
+
+Works within the Flask session interface:
+* Presents a dictionary-like interface for getting/setting values.
+* Session is loaded at the start of the request, and saved at the end.
+
+Additional behaviors:
+* Session is not saved and ID is not returned if the session is new and no data is added.
+
+### Session Instance Methods
+
+While this session implementation is backwards compatible with the Flask session functionality/interface, 
+there are some additional methods available that can be used if needed.
+
+### `abandon()`
+<div style="margin-left: 30px;">
+Immediately removes the session from the database. 
+</div>
+
+### `new()`
+<div style="margin-left: 30px;">
+Creates a new session, with new ID. Does not remove the old session record.
+</div>
+
 ## Configuration
 
 There are additional configuration options, and are set like normal Flask configuration:

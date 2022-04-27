@@ -9,7 +9,9 @@ from flask import Flask, session
 from dynamodb_session_flask import DynamoDbSession, DynamoDbSessionInstance
 from dynamodb_session_flask.testing import TestSession
 
-from .utility import LOCAL_ENDPOINT, TABLE_NAME
+from .utility import default_config, get_dynamo_record, LOCAL_ENDPOINT, TABLE_NAME
+
+dynamo_session = cast(DynamoDbSessionInstance, session)
 
 
 @pytest.fixture
@@ -34,11 +36,17 @@ def app():
 
     @flask_app.route('/check-bad-sid')
     def check_bad_sid():
-        dynamo_session = cast(DynamoDbSessionInstance, session)
         return {
             'failed_sid': dynamo_session.failed_sid,
             'new': dynamo_session.new,
         }
+
+    @flask_app.route('/abandon-and-assert')
+    def abandon_and_assert():
+        dynamo_session.abandon()
+        record = get_dynamo_record(dynamo_session.session_id)
+        assert record is None
+        return '', 200
 
     @flask_app.route('/no-session-use')
     def no_session_use():
@@ -49,16 +57,30 @@ def app():
         session.clear()
         return '', 200
 
+    @flask_app.route('/new')
+    def new():
+        dynamo_session.new()
+        return '', 200
+
+    @flask_app.route('/new-and-save/<val>')
+    def new_and_save(val):
+        dynamo_session.new()
+        session['val'] = val
+        return '', 200
+
     yield flask_app
 
 
 @pytest.fixture
 def client(app):  # pylint: disable=redefined-outer-name
     """ This is a custom test client fixture to allow setting app configuration, prior to client creation """
-    def create_initialized_client(config):
+    def create_initialized_client(config: dict[str, str] = None):
         """
         Allows the Flask test client to be initialized with test-case specific configuration before being returned.
         """
+        if config is None:
+            config = default_config()
+
         app.config.update(config)
         if app.testing:
             app.session_interface = TestSession()

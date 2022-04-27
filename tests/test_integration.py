@@ -1,4 +1,5 @@
 import hashlib
+import json
 from time import sleep
 
 import pytest
@@ -122,3 +123,70 @@ class TestWorkflows:
             assert expected_bad_sid_hash in flask_logs.text
             assert new_response.json['failed_sid'] == expected_bad_sid_hash
             assert new_response.json['new']
+
+    def test_abandon_removes_session_record_mid_request(self, client, helper: SidHelper):
+        expected_val_a = str_param()
+        expected_val_b = str_param()
+
+        with client(helper.configuration()) as client_a, client(helper.configuration()) as client_b:
+            # First save a couple of sessions
+            resp_a = client_a.get(f'/save/{expected_val_a}')
+            resp_b = client_b.get(f'/save/{expected_val_b}')
+
+            sid_a = helper.sid(resp_a)
+            sid_b = helper.sid(resp_b)
+
+            assert get_dynamo_record(sid_a) is not None
+            assert get_dynamo_record(sid_b) is not None
+
+            # Clear the "A" session. This should raise an error if the session record is not removed.
+            abandon_response = client_a.get('/abandon-and-assert', headers=helper.request_headers(resp_a))
+            assert abandon_response.status_code == 200
+
+            # Do more assertions
+            assert get_dynamo_record(sid_a) is None
+            assert get_dynamo_record(sid_b) is not None
+
+            # Clearing the cookie using Flask's helper sets the value to empty string,
+            # whereas the header will be None.
+            assert not helper.sid(abandon_response)
+
+    def test_new_creates_new_session_id(self, client, helper: SidHelper):
+        """
+        Calling new() creates a new session ID, but does not abandon the old record.
+        New record is not saved until data is modified.
+        """
+        expected_val = str_param()
+
+        with client(helper.configuration()) as test_client:
+            first_resp = test_client.get(f'/save/{expected_val}')
+            original_sid = helper.sid(first_resp)
+
+            new_resp = test_client.get('/new', headers=helper.request_headers(first_resp))
+            new_sid = helper.sid(new_resp)
+
+            assert get_dynamo_record(original_sid) is not None
+            assert new_sid is None
+
+    def test_new_with_save_creates_new_session_record(self, client, helper: SidHelper):
+        """
+        Calling new() creates a new session ID, but does not abandon the old record.
+        New record is not saved until data is modified.
+        """
+        original_expected_val = str_param()
+        new_expected_val = str_param()
+
+        with client(helper.configuration()) as test_client:
+            first_resp = test_client.get(f'/save/{original_expected_val}')
+            original_sid = helper.sid(first_resp)
+
+            new_resp = test_client.get(f'/new-and-save/{new_expected_val}', headers=helper.request_headers(first_resp))
+            new_sid = helper.sid(new_resp)
+
+            assert original_sid != new_sid
+
+            original_record = get_dynamo_record(original_sid)
+            new_record = get_dynamo_record(new_sid)
+
+            assert original_record['data'] == json.dumps({'val': original_expected_val})
+            assert new_record['data'] == json.dumps({'val': new_expected_val})

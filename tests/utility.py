@@ -12,10 +12,15 @@ TABLE_NAME = 'app_session'
 LOCAL_ENDPOINT = 'http://localhost:8000'
 
 
+def default_config() -> Dict[str, Any]:
+    return {
+        'SESSION_DYNAMODB_ENDPOINT_URL': LOCAL_ENDPOINT,
+    }
+
+
 def cookie_config() -> Dict[str, Any]:
     return {
         'SESSION_DYNAMODB_ENDPOINT_URL': LOCAL_ENDPOINT,
-        'SESSION_DYNAMODB_EXPOSE_ACTUAL_SID': True,
         'SESSION_DYNAMODB_USE_HEADER': False,
     }
 
@@ -23,7 +28,6 @@ def cookie_config() -> Dict[str, Any]:
 def header_config() -> Dict[str, Any]:
     return {
         'SESSION_DYNAMODB_ENDPOINT_URL': LOCAL_ENDPOINT,
-        'SESSION_DYNAMODB_EXPOSE_ACTUAL_SID': True,
         'SESSION_DYNAMODB_USE_HEADER': True,
     }
 

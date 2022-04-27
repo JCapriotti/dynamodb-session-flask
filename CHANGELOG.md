@@ -1,6 +1,17 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.7.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.7.0) - 2022-04-27
+
+### Added
+* `abandon()` - Added to the session instance. Immediately deletes the session record.
+* `new()` - Added to the session instance. Creates a new session and session ID.
+
+### Changed
+* Fixed issue related to last change, 
+  the session ID was not being removed from the cookie when `clear()` was called
+  and `SESSION_DYNAMODB_USE_HEADER` was `True`.
+
 ## [0.6.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.6.1) - 2022-04-26
 
 ### Changed
