@@ -89,6 +89,7 @@ class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
         """
         Creates a new session ID record.
         """
+        self.clear()
         session_manager = create_session_manager(current_app)
         self.__dict__ = session_manager.create().__dict__
 

@@ -4,7 +4,7 @@ from typing import cast
 import boto3
 import botocore
 import pytest
-from flask import Flask, session
+from flask import Flask, request, session
 
 from dynamodb_session_flask import DynamoDbSession, DynamoDbSessionInstance
 from dynamodb_session_flask.testing import TestSession
@@ -23,9 +23,10 @@ def app():
         session['foo'] = 'bar'
         return '', 200
 
-    @flask_app.route('/save/<val>')
-    def save(val):
-        session['val'] = val
+    @flask_app.route('/save')
+    def save():
+        for key, value in request.args.items():
+            session[key] = value
         return '', 200
 
     @flask_app.route('/load')
@@ -62,10 +63,11 @@ def app():
         dynamo_session.new()
         return '', 200
 
-    @flask_app.route('/new-and-save/<val>')
-    def new_and_save(val):
+    @flask_app.route('/new-and-save')
+    def new_and_save():
         dynamo_session.new()
-        session['val'] = val
+        for key, value in request.args.items():
+            session[key] = value
         return '', 200
 
     yield flask_app

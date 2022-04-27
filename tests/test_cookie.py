@@ -36,7 +36,7 @@ def test_cookie_is_set_with_defaults(client):
 @pytest.mark.usefixtures('dynamodb_table')
 def test_clear(client):
     with client(cookie_config()) as test_client:
-        resp = test_client.get('/save/foo')
+        resp = test_client.get('/save?val=foo')
         initial_cookie = session_cookie_dict(resp, 'id')
         sid = initial_cookie['id']
 
@@ -98,7 +98,7 @@ def test_header_id_is_not_used(client):
     """
     saved_value = str_param()
     with client(cookie_config()) as test_client:
-        test_client.get(f'/save/{saved_value}')
+        test_client.get(f'/save?val={saved_value}')
         session_id = cast(DynamoDbSessionInstance, session).session_id
 
     with client(cookie_config()) as test_client:
@@ -128,7 +128,7 @@ def test_expiration_settings_used_for_cookie(mocker, client, absolute, flask_per
     mock_current_datetime(mocker, current_datetime)
 
     with client(config) as test_client:
-        resp = test_client.get('/save/foo')
+        resp = test_client.get('/save?val=foo')
         cookie_dict = session_cookie_dict(resp, 'id')
 
         assert parse(cookie_dict['Expires']) == current_datetime + timedelta(seconds=expected)
@@ -155,7 +155,7 @@ def test_idle_timeout_expiration_for_cookie(mocker, client, idle, absolute, expe
     mock_current_timestamp(mocker, int(current_datetime.timestamp()))
 
     with client(config) as test_client:
-        resp = test_client.get('/save/foo')
+        resp = test_client.get('/save?val=foo')
         cookie_dict = session_cookie_dict(resp, 'id')
 
         assert parse(cookie_dict['Expires']) == current_datetime + timedelta(seconds=expected)

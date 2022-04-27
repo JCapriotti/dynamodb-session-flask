@@ -21,8 +21,8 @@ class TestWorkflows:
 
         with client(helper.configuration()) as client_a, client(helper.configuration()) as client_b:
             # Test save and load for two different requests
-            r_a = client_a.get(f'/save/{expected_val_a}')
-            r_b = client_b.get(f'/save/{expected_val_b}')
+            r_a = client_a.get(f'/save?val={expected_val_a}')
+            r_b = client_b.get(f'/save?val={expected_val_b}')
 
             response_a = client_a.get('/load', headers=helper.request_headers(r_a))
             response_b = client_b.get('/load', headers=helper.request_headers(r_b))
@@ -51,7 +51,7 @@ class TestWorkflows:
             assert sid is None
             assert len(get_all_dynamo_records()) == 0
 
-            resp = test_client.get('/save/foo')
+            resp = test_client.get('/save?val=foo')
             sid = helper.sid(resp)
 
             assert get_dynamo_record(sid) is not None
@@ -64,7 +64,7 @@ class TestWorkflows:
         expected_session_value = str_param()
 
         with client(helper.configuration()) as test_client:
-            resp = test_client.get(f'/save/{expected_session_value}')
+            resp = test_client.get(f'/save?val={expected_session_value}')
             sid = helper.sid(resp)
             sleep(1)
             initial_expiration = get_dynamo_record(sid)['expires']
@@ -80,7 +80,7 @@ class TestWorkflows:
         returned if no data was saved.
         """
         with client(helper.configuration()) as test_client:
-            original_response = test_client.get('/save/foo')
+            original_response = test_client.get('/save?val=foo')
             original_sid = helper.sid(original_response)
             remove_dynamo_record(original_sid)
 
@@ -97,9 +97,9 @@ class TestWorkflows:
             bad_sid = str_param()
             if isinstance(helper, CookieSidHelper):
                 test_client.set_cookie(None, 'id', bad_sid)
-                response = test_client.get('/save/foo')
+                response = test_client.get('/save?val=foo')
             else:
-                response = test_client.get('/save/foo', headers={'x-id': bad_sid})
+                response = test_client.get('/save?val=foo', headers={'x-id': bad_sid})
 
             sid = helper.sid(response)
 
@@ -113,7 +113,7 @@ class TestWorkflows:
 
     def test_failed_sid_is_available_as_member(self, client, helper: SidHelper, flask_logs):
         with client(helper.configuration()) as test_client:
-            original_response = test_client.get('/save/foo')
+            original_response = test_client.get('/save?val=foo')
             original_sid = helper.sid(original_response)
             expected_bad_sid_hash = hashlib.sha512(original_sid.encode()).hexdigest()
             remove_dynamo_record(original_sid)
@@ -130,8 +130,8 @@ class TestWorkflows:
 
         with client(helper.configuration()) as client_a, client(helper.configuration()) as client_b:
             # First save a couple of sessions
-            resp_a = client_a.get(f'/save/{expected_val_a}')
-            resp_b = client_b.get(f'/save/{expected_val_b}')
+            resp_a = client_a.get(f'/save?val={expected_val_a}')
+            resp_b = client_b.get(f'/save?val={expected_val_b}')
 
             sid_a = helper.sid(resp_a)
             sid_b = helper.sid(resp_b)
@@ -159,7 +159,7 @@ class TestWorkflows:
         expected_val = str_param()
 
         with client(helper.configuration()) as test_client:
-            first_resp = test_client.get(f'/save/{expected_val}')
+            first_resp = test_client.get(f'/save?val={expected_val}')
             original_sid = helper.sid(first_resp)
 
             new_resp = test_client.get('/new', headers=helper.request_headers(first_resp))
@@ -172,15 +172,19 @@ class TestWorkflows:
         """
         Calling new() creates a new session ID, but does not abandon the old record.
         New record is not saved until data is modified.
+        No data should be persisted between the original and new sessions.
         """
         original_expected_val = str_param()
+        original_expected_val_2 = str_param()
         new_expected_val = str_param()
 
         with client(helper.configuration()) as test_client:
-            first_resp = test_client.get(f'/save/{original_expected_val}')
+            first_resp = test_client.get(f'/save?val={original_expected_val}&val_2={original_expected_val_2}')
             original_sid = helper.sid(first_resp)
 
-            new_resp = test_client.get(f'/new-and-save/{new_expected_val}', headers=helper.request_headers(first_resp))
+            new_resp = test_client.get(
+                f'/new-and-save?val={new_expected_val}',
+                headers=helper.request_headers(first_resp))
             new_sid = helper.sid(new_resp)
 
             assert original_sid != new_sid
@@ -188,5 +192,8 @@ class TestWorkflows:
             original_record = get_dynamo_record(original_sid)
             new_record = get_dynamo_record(new_sid)
 
-            assert original_record['data'] == json.dumps({'val': original_expected_val})
-            assert new_record['data'] == json.dumps({'val': new_expected_val})
+            expected_original = json.dumps({'val': original_expected_val, 'val_2': original_expected_val_2})
+            expected_new = json.dumps({'val': new_expected_val})
+
+            assert original_record['data'] == expected_original
+            assert new_record['data'] == expected_new

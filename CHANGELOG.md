@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [0.7.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.7.1) - 2022-04-27
+
+### Fixed
+* The new `new()` method was not clearing data like it should have been.
+
 ## [0.7.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.7.0) - 2022-04-27
 
 ### Added

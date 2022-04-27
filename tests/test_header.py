@@ -47,7 +47,7 @@ def test_cookie_used_when_available(client):
     expected_value = str_param()
 
     with client(header_config()) as test_client:
-        save_response = test_client.get(f'/save/{expected_value}')
+        save_response = test_client.get(f'/save?val={expected_value}')
 
         sid = save_response.headers['x-id']
 
