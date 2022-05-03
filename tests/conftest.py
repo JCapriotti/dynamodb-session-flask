@@ -60,12 +60,12 @@ def app():
 
     @flask_app.route('/new')
     def new():
-        dynamo_session.new()
+        dynamo_session.create()
         return '', 200
 
     @flask_app.route('/new-and-save')
     def new_and_save():
-        dynamo_session.new()
+        dynamo_session.create()
         for key, value in request.args.items():
             session[key] = value
         return '', 200

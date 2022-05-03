@@ -122,7 +122,7 @@ class TestWorkflows:
 
             assert expected_bad_sid_hash in flask_logs.text
             assert new_response.json['failed_sid'] == expected_bad_sid_hash
-            assert new_response.json['new']
+            assert new_response.json['new'] is True
 
     def test_abandon_removes_session_record_mid_request(self, client, helper: SidHelper):
         expected_val_a = str_param()

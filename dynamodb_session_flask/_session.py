@@ -85,13 +85,13 @@ class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
         session_manager = create_session_manager(current_app)
         session_manager.clear(self.session_id)
 
-    def new(self):
+    def create(self):
         """
         Creates a new session ID record.
         """
         self.clear()
         session_manager = create_session_manager(current_app)
-        self.__dict__ = session_manager.create().__dict__
+        self.__dict__ = DynamoDbSession.create_session(session_manager).__dict__
 
 
 class FlaskNullSessionInstance(DynamoDbSessionInstance):
@@ -122,7 +122,7 @@ class DynamoDbSession(SessionInterface):
 
     @staticmethod
     def create_session(session_manager: SessionManager) -> DynamoDbSessionInstance:
-        instance = session_manager.create()
+        instance: DynamoDbSessionInstance = session_manager.create()
         instance.new = True
         return instance
 

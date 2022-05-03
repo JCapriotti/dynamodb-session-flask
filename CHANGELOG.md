@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.0.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.0.0) - 2022-05-03
+
+### Breaking Change
+* There was a conflict with the `new()` method and Flask's `new` attribute. 
+  Renamed `new()` to `create()`.
+
+### Fixed
+* The new `new()` method was not clearing data like it should have been.
+
 ## [0.7.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v0.7.1) - 2022-04-27
 
 ### Fixed

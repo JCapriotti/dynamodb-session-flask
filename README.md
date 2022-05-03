@@ -101,7 +101,7 @@ there are some additional methods available that can be used if needed.
 Immediately removes the session from the database. 
 </div>
 
-### `new()`
+### `create()`
 <div style="margin-left: 30px;">
 Creates a new session, with new ID. Does not remove the old session record.
 </div>
