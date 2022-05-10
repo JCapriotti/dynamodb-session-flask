@@ -1,6 +1,18 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.0.2](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.0.2) - 2022-05-10
+
+### Changed
+
+* Added `abandon()` to the test helper it doesn't attempt to access DynamoDB.
+
+## [1.0.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.0.1) - 2022-05-04
+
+### Changed
+
+* Updated the license file; mistakenly picked the wrong one.
+
 ## [1.0.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.0.0) - 2022-05-03
 
 ### Breaking Change

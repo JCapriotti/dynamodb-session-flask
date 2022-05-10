@@ -1,7 +1,12 @@
+from typing import cast
+
 import pytest
 from flask import Flask, session
 
+from dynamodb_session_flask import DynamoDbSessionInstance
 from dynamodb_session_flask.testing import TestSession
+
+dynamo_session = cast(DynamoDbSessionInstance, session)
 
 
 @pytest.fixture
@@ -13,6 +18,11 @@ def app():
         return {
             'actual_value': session.get('val', None),
         }
+
+    @flask_app.route('/abandon')
+    def abandon():
+        dynamo_session.abandon()
+        return '', 200
 
     yield flask_app
 
@@ -33,3 +43,10 @@ def test_able_to_use_test_session_transaction(test_client):  # pylint: disable=r
         response = test_client.get('/load')
 
         assert response.json['actual_value'] == expected_value
+
+
+def test_abandon(test_client):  # pylint: disable=redefined-outer-name
+    with test_client:
+        response = test_client.get('/abandon')
+
+        assert response.status_code == 200
