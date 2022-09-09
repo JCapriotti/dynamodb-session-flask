@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.1.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.0) - 2022-09-09
+
+### Changed
+
+* Added `save()` to the session interface.
+
 ## [1.0.2](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.0.2) - 2022-05-10
 
 ### Changed

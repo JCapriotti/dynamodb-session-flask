@@ -106,6 +106,14 @@ Immediately removes the session from the database.
 Creates a new session, with new ID. Does not remove the old session record.
 </div>
 
+### `save()`
+<div style="margin-left: 30px;">
+Manually saves the session.
+
+This method is not usually needed since Flask will save the session at the end of a request.
+However, it is provided for cases where the session must be saved earlier.
+</div>
+
 ## Configuration
 
 There are additional configuration options, and are set like normal Flask configuration:

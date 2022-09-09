@@ -7,7 +7,6 @@ from .utility import CookieSidHelper, get_dynamo_record, get_all_dynamo_records,
     remove_dynamo_record, SidHelper, str_param
 
 
-# pylint: disable=no-self-use
 @pytest.mark.parametrize(
     'helper', [
         pytest.param(CookieSidHelper(), id='Cookie'),
