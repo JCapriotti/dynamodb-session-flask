@@ -58,7 +58,7 @@ def get_dynamo_table():
 def get_dynamo_record(key) -> Optional[Dict[str, Any]]:
     table = get_dynamo_table()
 
-    response = table.get_item(Key={'id': key})
+    response = table.get_item(Key={'id': key}, ConsistentRead=True)
     return response.get('Item', None)
 
 

@@ -93,6 +93,16 @@ class DynamoDbSessionInstance(SessionDictInstance, SessionMixin):
         session_manager = create_session_manager(current_app)
         self.__dict__ = DynamoDbSession.create_session(session_manager).__dict__
 
+    def save(self):
+        """
+        Manually saves the session.
+
+        This method is not usually needed since Flask will save the session at the end of a request.
+        However, it is provided for cases where the session must be saved earlier.
+        """
+        session_manager = create_session_manager(current_app)
+        session_manager.save(self)
+
 
 class FlaskNullSessionInstance(DynamoDbSessionInstance):
     pass

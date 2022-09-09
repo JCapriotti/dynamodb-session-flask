@@ -70,6 +70,16 @@ def app():
             session[key] = value
         return '', 200
 
+    @flask_app.route('/manual-save-and-assert')
+    def manual_save_and_assert():
+        for key, value in request.args.items():
+            session[key] = value
+
+        dynamo_session.save()
+        record = get_dynamo_record(dynamo_session.session_id)
+        assert record is not None
+        return '', 200
+
     yield flask_app
 
 

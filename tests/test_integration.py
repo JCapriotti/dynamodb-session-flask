@@ -197,3 +197,29 @@ class TestWorkflows:
 
             assert original_record['data'] == expected_original
             assert new_record['data'] == expected_new
+
+    def test_manual_save_creates_record(self, client, helper: SidHelper):
+        """
+        Tests the save() method and makes sure it does not conflict with when Flask saves the session.
+
+        Might be unnecessary, but it does this by:
+         - Adding a value to the session (manually_saved_val), and calls save()
+         - Adds another value to the session (flask_saved_val) and lets Flask's default behavior save it.
+
+        Within the test web request, it asserts that the first save works.
+        Within the test below, it asserts that both the first and second values are persisted.
+        """
+        manually_saved_val = str_param()
+        flask_saved_val = str_param()
+        with client(helper.configuration()) as test_client:
+            resp = test_client.get(f'/manual-save-and-assert?manual={manually_saved_val}&flask={flask_saved_val}')
+            assert resp.status_code == 200
+
+            # Check the final state of the database
+            sid = helper.sid(resp)
+            record = get_dynamo_record(sid)
+            session_data = json.loads(record['data'])
+
+            assert get_dynamo_record(sid) is not None
+            assert session_data['manual'] == manually_saved_val
+            assert session_data['flask'] == flask_saved_val
