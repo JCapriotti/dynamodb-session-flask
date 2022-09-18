@@ -1,9 +1,11 @@
+import pytest
 from flask import session
 
 from dynamodb_session_flask import DynamoDbSessionInstance
 from .utility import get_dynamo_record, header_config, int_param, str_param
 
 
+@pytest.mark.usefixtures('dynamodb_table')
 def test_header_with_default_settings(client):
     expected_header_name = 'x-id'
 
@@ -17,6 +19,7 @@ def test_header_with_default_settings(client):
         assert response.headers[expected_header_name] == expected_header_value
 
 
+@pytest.mark.usefixtures('dynamodb_table')
 def test_header_with_configured_settings(client):
     expected_header_name = str_param()
     expected_idle_timeout = int_param()
@@ -40,6 +43,7 @@ def test_header_with_configured_settings(client):
         assert actual_record['absolute_timeout'] == expected_absolute_timeout
 
 
+@pytest.mark.usefixtures('dynamodb_table')
 def test_cookie_used_when_available(client):
     """
     We can allow a cookie to be used in place of header, when 'use header' setting is enabled
@@ -47,7 +51,7 @@ def test_cookie_used_when_available(client):
     expected_value = str_param()
 
     with client(header_config()) as test_client:
-        save_response = test_client.get(f'/save?val={expected_value}')
+        save_response = test_client.get(f'/save_items?val={expected_value}')
 
         sid = save_response.headers['x-id']
 

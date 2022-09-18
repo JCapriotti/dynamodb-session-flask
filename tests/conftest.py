@@ -23,8 +23,8 @@ def app():
         session['foo'] = 'bar'
         return '', 200
 
-    @flask_app.route('/save')
-    def save():
+    @flask_app.route('/save_items')
+    def save_items():
         for key, value in request.args.items():
             session[key] = value
         return '', 200
@@ -61,6 +61,16 @@ def app():
     @flask_app.route('/new')
     def new():
         dynamo_session.create()
+        return '', 200
+
+    @flask_app.route('/abandon')
+    def abandon():
+        dynamo_session.abandon()
+        return '', 200
+
+    @flask_app.route('/save')
+    def save():
+        dynamo_session.save()
         return '', 200
 
     @flask_app.route('/new-and-save')
@@ -102,7 +112,7 @@ def client(app):  # pylint: disable=redefined-outer-name
     return create_initialized_client
 
 
-@pytest.fixture(scope='function', autouse=True)
+@pytest.fixture(scope='function')
 def dynamodb_table(docker_services):  # pylint: disable=unused-argument
     dynamodb = boto3.resource('dynamodb', endpoint_url=LOCAL_ENDPOINT)
 

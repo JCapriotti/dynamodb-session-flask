@@ -13,6 +13,9 @@ class TestSession(SessionInterface):
             """ Clears the session but doesn't do any DynamoDB actions """
             self.clear()
 
+        def save(self):
+            """ Mocked save method """
+
     memory_instance: DynamoDbSessionInstance = TestInstance()
 
     def open_session(self, app: Flask, request: Request) -> DynamoDbSessionInstance:

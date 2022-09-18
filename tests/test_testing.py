@@ -1,42 +1,20 @@
 from typing import cast
 
-import pytest
-from flask import Flask, session
+from flask import session
 
 from dynamodb_session_flask import DynamoDbSessionInstance
-from dynamodb_session_flask.testing import TestSession
 
 dynamo_session = cast(DynamoDbSessionInstance, session)
 
 
-@pytest.fixture
-def app():
-    flask_app = Flask(__name__)
-
-    @flask_app.route('/load')
-    def load():
-        return {
-            'actual_value': session.get('val', None),
-        }
-
-    @flask_app.route('/abandon')
-    def abandon():
-        dynamo_session.abandon()
-        return '', 200
-
-    yield flask_app
+def _testing_config() -> dict:
+    return {'TESTING': True}
 
 
-@pytest.fixture()
-def test_client(app):  # pylint: disable=redefined-outer-name
-    app.session_interface = TestSession()
-    return app.test_client()
-
-
-def test_able_to_use_test_session_transaction(test_client):  # pylint: disable=redefined-outer-name
+def test_able_to_use_test_session_transaction(client):
     expected_value = 'fake_value'
 
-    with test_client:
+    with client(_testing_config()) as test_client:
         with test_client.session_transaction() as test_session:
             test_session['val'] = expected_value
 
@@ -45,8 +23,15 @@ def test_able_to_use_test_session_transaction(test_client):  # pylint: disable=r
         assert response.json['actual_value'] == expected_value
 
 
-def test_abandon(test_client):  # pylint: disable=redefined-outer-name
-    with test_client:
+def test_abandon(client):
+    with client(_testing_config()) as test_client:
         response = test_client.get('/abandon')
+
+        assert response.status_code == 200
+
+
+def test_save(client):
+    with client(_testing_config()) as test_client:
+        response = test_client.get('/save')
 
         assert response.status_code == 200
