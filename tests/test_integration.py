@@ -16,19 +16,14 @@ from .utility import CookieSidHelper, get_dynamo_record, get_all_dynamo_records,
 @pytest.mark.usefixtures('dynamodb_table')
 class TestWorkflows:
     def test_save_and_load_using_header(self, client, helper: SidHelper):
-        expected_val_a = str_param()
-        expected_val_b = str_param()
+        expected_val = str_param()
 
-        with client(helper.configuration()) as client_a, client(helper.configuration()) as client_b:
+        with client(helper.configuration()) as test_client:
             # Test save and load for two different requests
-            r_a = client_a.get(f'/save_items?val={expected_val_a}')
-            r_b = client_b.get(f'/save_items?val={expected_val_b}')
+            resp_first = test_client.get(f'/save_items?val={expected_val}')
+            resp_second = test_client.get('/load', headers=helper.request_headers(resp_first))
 
-            response_a = client_a.get('/load', headers=helper.request_headers(r_a))
-            response_b = client_b.get('/load', headers=helper.request_headers(r_b))
-
-            assert response_a.json['actual_value'] == expected_val_a
-            assert response_b.json['actual_value'] == expected_val_b
+            assert resp_second.json['actual_value'] == expected_val
 
     def test_no_use_doesnt_save_anything(self, client, helper: SidHelper):
         with client(helper.configuration()) as test_client:
@@ -41,7 +36,7 @@ class TestWorkflows:
     def test_no_use_followed_by_use_saves_session(self, client, helper: SidHelper):
         """
         Make sure that no session use does not save anything or return a SID.
-        Then when the session is used, verify that a SID is returned and session is saved.
+        Then, when the session is used, verify that a SID is returned and session is saved.
         For header use, it should send back the ID in a dedicated header, and cookie.
         """
         with client(helper.configuration()) as test_client:
@@ -125,27 +120,21 @@ class TestWorkflows:
             assert new_response.json['new'] is True
 
     def test_abandon_removes_session_record_mid_request(self, client, helper: SidHelper):
-        expected_val_a = str_param()
-        expected_val_b = str_param()
+        expected_val = str_param()
 
-        with client(helper.configuration()) as client_a, client(helper.configuration()) as client_b:
-            # First save a couple of sessions
-            resp_a = client_a.get(f'/save_items?val={expected_val_a}')
-            resp_b = client_b.get(f'/save_items?val={expected_val_b}')
+        with client(helper.configuration()) as test_client:
+            # First save a session
+            resp_first = test_client.get(f'/save_items?val={expected_val}')
+            sid = helper.sid(resp_first)
 
-            sid_a = helper.sid(resp_a)
-            sid_b = helper.sid(resp_b)
+            assert get_dynamo_record(sid) is not None
 
-            assert get_dynamo_record(sid_a) is not None
-            assert get_dynamo_record(sid_b) is not None
-
-            # Clear the "A" session. This should raise an error if the session record is not removed.
-            abandon_response = client_a.get('/abandon-and-assert', headers=helper.request_headers(resp_a))
+            # Clear session. This should raise an error if the session record is not removed.
+            abandon_response = test_client.get('/abandon-and-assert', headers=helper.request_headers(resp_first))
             assert abandon_response.status_code == 200
 
             # Do more assertions
-            assert get_dynamo_record(sid_a) is None
-            assert get_dynamo_record(sid_b) is not None
+            assert get_dynamo_record(sid) is None
 
             # Clearing the cookie using Flask's helper sets the value to empty string,
             # whereas the header will be None.

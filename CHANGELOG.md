@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 * Related to last updated, needed to add `save()` to the test session interface.
+* Removed testing of two clients at the same time, 
+  [no longer works in Flask 2.2.0](https://github.com/pallets/flask/issues/4761).
+  Theoretically not needed, provided that `DynamoDbSession` never has state.
 
 ## [1.1.0](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.0) - 2022-09-09
 
