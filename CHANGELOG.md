@@ -1,7 +1,13 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [1.1.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.0) - 2022-09-18
+## [1.1.2](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.2) - 2022-09-20
+
+### Fixed
+
+* Fixed an issue in the test library where the fake session would persist across tests.
+
+## [1.1.1](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.1) - 2022-09-18
 
 ### Changed
 
