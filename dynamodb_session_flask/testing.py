@@ -16,7 +16,8 @@ class TestSession(SessionInterface):
         def save(self):
             """ Mocked save method """
 
-    memory_instance: DynamoDbSessionInstance = TestInstance()
+    def __init__(self):
+        self.memory_instance = TestSession.TestInstance()
 
     def open_session(self, app: Flask, request: Request) -> DynamoDbSessionInstance:
         return self.memory_instance

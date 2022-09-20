@@ -14,8 +14,7 @@ from .utility import default_config, get_dynamo_record, LOCAL_ENDPOINT, TABLE_NA
 dynamo_session = cast(DynamoDbSessionInstance, session)
 
 
-@pytest.fixture
-def app():
+def app_func():
     flask_app = Flask(__name__)
 
     @flask_app.route('/')
@@ -90,11 +89,15 @@ def app():
         assert record is not None
         return '', 200
 
-    yield flask_app
+    return flask_app
 
 
-@pytest.fixture
-def client(app):  # pylint: disable=redefined-outer-name
+@pytest.fixture(name='app')
+def app():
+    yield app_func()
+
+
+def client_func(flask_app):
     """ This is a custom test client fixture to allow setting app configuration, prior to client creation """
     def create_initialized_client(config: dict[str, str] = None):
         """
@@ -103,13 +106,18 @@ def client(app):  # pylint: disable=redefined-outer-name
         if config is None:
             config = default_config()
 
-        app.config.update(config)
-        if app.testing:
-            app.session_interface = TestSession()
+        flask_app.config.update(config)
+        if flask_app.testing:
+            flask_app.session_interface = TestSession()
         else:
-            app.session_interface = DynamoDbSession()
-        return app.test_client()
+            flask_app.session_interface = DynamoDbSession()
+        return flask_app.test_client()
     return create_initialized_client
+
+
+@pytest.fixture(name='client')
+def client(app):  # pylint: disable=redefined-outer-name
+    return client_func(app)
 
 
 @pytest.fixture(scope='function')

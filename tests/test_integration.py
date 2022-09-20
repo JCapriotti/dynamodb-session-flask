@@ -3,8 +3,17 @@ import json
 from time import sleep
 
 import pytest
-from .utility import CookieSidHelper, get_dynamo_record, get_all_dynamo_records, HeaderSidHelper, \
-    remove_dynamo_record, SidHelper, str_param
+
+from .conftest import app_func, client_func
+from .utility import (
+    CookieSidHelper,
+    get_dynamo_record,
+    get_all_dynamo_records,
+    HeaderSidHelper,
+    remove_dynamo_record,
+    SidHelper,
+    str_param
+)
 
 
 @pytest.mark.parametrize(
@@ -19,11 +28,23 @@ class TestWorkflows:
         expected_val = str_param()
 
         with client(helper.configuration()) as test_client:
-            # Test save and load for two different requests
             resp_first = test_client.get(f'/save_items?val={expected_val}')
             resp_second = test_client.get('/load', headers=helper.request_headers(resp_first))
 
             assert resp_second.json['actual_value'] == expected_val
+
+    def test_save_and_load_using_header_multiple_clients(self, helper: SidHelper):
+        expected_val = str_param()
+
+        with client_func(app_func())(helper.configuration()) as test_client:
+            resp_first = test_client.get(f'/save_items?val={expected_val}')
+            resp_second = test_client.get('/load', headers=helper.request_headers(resp_first))
+
+            assert resp_second.json['actual_value'] == expected_val
+
+        with client_func(app_func())(helper.configuration()) as test_client:
+            with test_client.session_transaction() as test_session:
+                assert 'val' not in test_session
 
     def test_no_use_doesnt_save_anything(self, client, helper: SidHelper):
         with client(helper.configuration()) as test_client:
