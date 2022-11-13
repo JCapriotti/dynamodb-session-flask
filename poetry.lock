@@ -219,11 +219,11 @@ python-versions = "*"
 
 [[package]]
 name = "dynamodb-session-web"
-version = "0.2.8"
+version = "0.2.9"
 description = "Contains the core API for a DynamoDB-backed session"
 category = "main"
 optional = false
-python-versions = ">=3.9,<4.0"
+python-versions = ">=3.7,<4.0"
 
 [package.dependencies]
 boto3 = ">=1.21.21,<2.0.0"
@@ -876,8 +876,8 @@ docopt = [
     {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
 ]
 dynamodb-session-web = [
-    {file = "dynamodb-session-web-0.2.8.tar.gz", hash = "sha256:8a799c3841639e57fd28412f24eb0f59f6aeb61285925457aaa91db6460011f2"},
-    {file = "dynamodb_session_web-0.2.8-py3-none-any.whl", hash = "sha256:30cd5d0940f28bd5271fa13f59f2e7d07d18c68f6d22b09c87a3bc6ca0ecad68"},
+    {file = "dynamodb-session-web-0.2.9.tar.gz", hash = "sha256:0685c4974b9672e0338a7b2467d5c21bc14d91df556df1f8aaa6b988129a7e80"},
+    {file = "dynamodb_session_web-0.2.9-py3-none-any.whl", hash = "sha256:a1c187a56e7c1620f571cba2f7520668594e75951489bd09de849c61c3998df0"},
 ]
 Flask = [
     {file = "Flask-2.2.2-py3-none-any.whl", hash = "sha256:b9c46cc36662a7949f34b52d8ec7bb59c0d74ba08ba6cb9ce9adc1d8676d9526"},

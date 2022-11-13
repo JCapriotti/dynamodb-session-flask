@@ -1,5 +1,5 @@
 import logging
-from typing import cast
+from typing import cast, Dict
 
 import boto3
 import botocore
@@ -99,7 +99,7 @@ def app():
 
 def client_func(flask_app):
     """ This is a custom test client fixture to allow setting app configuration, prior to client creation """
-    def create_initialized_client(config: dict[str, str] = None):
+    def create_initialized_client(config: Dict[str, str] = None):
         """
         Allows the Flask test client to be initialized with test-case specific configuration before being returned.
         """

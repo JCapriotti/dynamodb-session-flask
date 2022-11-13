@@ -1,6 +1,14 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.1.3](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.3) - 2022-11-13
+
+### Updated
+
+- Allow package to be installed on Python >= 3.7; previously was >= 3.9, for no reason.
+- Improved `tox` file for quicker runs and conciseness.
+- Added explicit `Optional` to some method arguments; where before it was implicit.
+
 ## [1.1.2](https://github.com/JCapriotti/dynamodb-session-flask/tree/v1.1.2) - 2022-09-20
 
 ### Fixed

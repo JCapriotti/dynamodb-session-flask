@@ -58,7 +58,7 @@ def test_cookie_is_set_with_flask_configured_settings(client):
     expected_domain = 'bar.com'
     expected_path = '/auth'
 
-    config = cookie_config() | {
+    config = {**cookie_config(), **{
         'SESSION_DYNAMODB_OVERRIDE_COOKIE_NAME': False,
         'SESSION_DYNAMODB_OVERRIDE_COOKIE_SECURE': False,
         'SESSION_COOKIE_NAME': expected_cookie_name,
@@ -67,7 +67,7 @@ def test_cookie_is_set_with_flask_configured_settings(client):
         'SESSION_COOKIE_SAMESITE': expected_same_site,
         'SESSION_COOKIE_DOMAIN': expected_domain,
         'SESSION_COOKIE_PATH': expected_path,
-    }
+    }}
 
     with client(config) as test_client:
         response = test_client.get('/')
@@ -121,10 +121,10 @@ def test_expiration_settings_used_for_cookie(mocker, client, absolute, flask_per
 
     These tests ignore idle timeout to keep them simple.
     """
-    config = cookie_config() | {
+    config = {**cookie_config(), **{
         'SESSION_DYNAMODB_ABSOLUTE_TIMEOUT': absolute,
         'PERMANENT_SESSION_LIFETIME': flask_permanent_lifetime,
-    }
+    }}
 
     current_datetime = datetime(1977, 12, 28, 12, 40, 0, 0, tzinfo=timezone.utc)
     mock_current_datetime(mocker, current_datetime)
@@ -148,10 +148,10 @@ def test_idle_timeout_expiration_for_cookie(mocker, client, idle, absolute, expe
 
     These tests ignore PERMANENT_SESSION_LIFETIME to keep them simple. Flask's default is 31 days.
     """
-    config = cookie_config() | {
+    config = {**cookie_config(), **{
         'SESSION_DYNAMODB_IDLE_TIMEOUT': idle,
         'SESSION_DYNAMODB_ABSOLUTE_TIMEOUT': absolute,
-    }
+    }}
 
     current_datetime = datetime(1977, 12, 28, 12, 40, 0, 0, tzinfo=timezone.utc)
     mock_current_datetime(mocker, current_datetime)

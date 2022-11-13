@@ -1,6 +1,6 @@
 import hashlib
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, cast, List
+from typing import Any, Dict, cast, List, Optional
 
 from dynamodb_session_web import SessionManager, SessionDictInstance
 from dynamodb_session_web.exceptions import SessionError
@@ -15,13 +15,13 @@ DEFAULT_HEADER_NAME = 'x-id'
 DEFAULT_SID_KEYS: List[str] = []
 
 
-def current_datetime(datetime_value: datetime = None) -> datetime:
+def current_datetime(datetime_value: Optional[datetime] = None) -> datetime:
     if datetime_value is None:
         datetime_value = datetime.now(tz=timezone.utc)
     return datetime_value
 
 
-def current_timestamp(datetime_value: datetime = None) -> int:
+def current_timestamp(datetime_value: Optional[datetime] = None) -> int:
     return int(current_datetime(datetime_value).timestamp())
 
 
