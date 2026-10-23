@@ -14,7 +14,7 @@ repository = "https://github.com/JCapriotti/dynamodb-session-flask"
 
 [tool.poetry.dependencies]
 python = "^3.7"
-Flask = "^2.0.0"
+Flask = ">=2.0.0,<4.0.0"
 dynamodb-session-web = "^0.2.7"
 
 [tool.poetry.group.test.dependencies]
